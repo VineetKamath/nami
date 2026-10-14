@@ -1,0 +1,13 @@
+{
+  "name": "nami-content-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "File-backed content agent for Nami: canon, prompt library, job state machine, budget gates, provider adapters, dry-run X publishing and a premium video pipeline.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "cli": "node src/cli.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}
