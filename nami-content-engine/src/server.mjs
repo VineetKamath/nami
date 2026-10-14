@@ -12,9 +12,10 @@ import * as engine from './engine.mjs';
 import { progressView } from './progress.mjs';
 import { startAutopilot } from './autopilot.mjs';
 
-const PROGRESS_PAGE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'site', 'progress.html');
+const SITE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'site');
 
-const MIME = { '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.json': 'application/json', '.srt': 'text/plain; charset=utf-8' };
+const MIME = { '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.json': 'application/json', '.srt': 'text/plain; charset=utf-8',
+  '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.webp': 'image/webp', '.jpeg': 'image/jpeg', '.woff2': 'font/woff2', '.mp3': 'audio/mpeg', '.ico': 'image/x-icon' };
 
 function send(res, status, body, headers = {}) {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', ...headers });
@@ -65,9 +66,14 @@ export function createServer(cfg = loadConfig()) {
       // ---- Public, read-only ----
       if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { ok: true, dryRun: cfg.dryRun }, cors);
       if (req.method === 'GET' && url.pathname === '/api/progress') return send(res, 200, progressView(cfg), cors);
-      if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/progress')) {
-        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-        return fs.createReadStream(PROGRESS_PAGE).pipe(res);
+      // Static website (site/): / -> index.html, /progress -> progress.html, /assets/*
+      if (req.method === 'GET' && parts[0] !== 'api' && parts[0] !== 'media') {
+        const rel = url.pathname === '/' ? 'index.html' : url.pathname === '/progress' ? 'progress.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');
+        const file = path.resolve(SITE_DIR, rel);
+        if (file.startsWith(SITE_DIR + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile()) {
+          res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-cache' });
+          return fs.createReadStream(file).pipe(res);
+        }
       }
       if (req.method === 'GET' && url.pathname === '/api/feed') {
         const feed = readFeed(cfg);

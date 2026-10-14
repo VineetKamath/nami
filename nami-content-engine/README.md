@@ -94,7 +94,7 @@ canon/       NAMI_BIBLE.md, VISUAL_CONTINUITY.md, SAFETY_POLICY.md
 prompts/     post.md, storyboard.md, plate.md
 src/         config, store, jobs (state machine), budget (ledger + gates), safety, canon, feed, engine, server, cli
 src/providers/  language (template, openai), image (placeholder, openai), video (placeholder, higgsfield), x (dry-run, x-api), router
-site/        progress.html (public "in production" page)
+site/        the public website (index.html + assets/: cursor, scroll fx, synthesized sound, live feed/progress, tuner) and progress.html
 docs/        FEED_CONTRACT.md
 data/        runtime state (git-ignored)
 ```
@@ -104,3 +104,13 @@ data/        runtime state (git-ignored)
 - X media upload for video posts; captions burned into the final cut.
 - Reference-image conditioning (`canon/refs/`) for character consistency.
 - Single-process assumption: don't run two engines on the same `data/` concurrently.
+
+## Website (`site/`)
+`npm start` serves it at `/` (the old standalone status page stays at `/progress`).
+- Boot screen with a sound gate (browsers only allow audio after a click). All sound is synthesized in `assets/sound.js`, so there are no audio files.
+- Custom mint crosshair cursor with labels, rain/dust canvas, scroll-reveal headlines, parallax, pinned horizontal "transmissions", 3D tilt cards, magnetic buttons, glitch title, and an oscilloscope that follows the cursor or the live audio.
+- Live data: transmissions from `/api/feed` (sample posts if it's empty) and the production board from `/api/progress` (polls every 20 s).
+- An interactive FM tuner (keyboard accessible). Find 103.3.
+- Honors `prefers-reduced-motion`. The custom cursor only appears with a mouse.
+- **Add your image** at `site/assets/nami.jpg` (portrait, about 3:4). Until then a radar-style placeholder shows.
+- To host the site separately from the engine, copy `site/` into `public/` and set `<meta name="nami-api" content="https://your-engine-host">` in `index.html`.

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nami · Midnight Broadcast</title>
+<meta name="description" content="Nami is a fictional virtual host broadcasting from a late-night studio on the mint frequency.">
+<meta name="theme-color" content="#04070b">
+<!-- API base for live feed/progress. Empty = same origin (served by nami-content-engine). -->
+<meta name="nami-api" content="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body class="is-booting">
+
+<!-- Boot / sound gate -->
+<div id="boot" aria-live="polite">
+  <div class="boot-inner">
+    <div class="boot-mark"><span class="pulse"></span>NAMI</div>
+    <div class="boot-line mono"><span id="boot-text">ESTABLISHING SIGNAL</span><span><span id="boot-pct">000</span>%</span></div>
+    <div class="boot-bar"><i id="boot-fill"></i></div>
+    <div class="boot-actions" id="boot-actions" hidden>
+      <button class="btn btn-primary" id="enter-sound" data-cursor="tune in">Enter with sound</button>
+      <button class="btn btn-ghost" id="enter-silent" data-cursor="mute">Enter silently</button>
+    </div>
+    <p class="boot-hint mono">headphones recommended · 03:00 FM</p>
+  </div>
+</div>
+
+<!-- Atmosphere layers -->
+<canvas id="bg" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
+<div class="scanlines" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+<div id="scroll-progress" aria-hidden="true"></div>
+
+<!-- Cursor -->
+<div class="cursor" aria-hidden="true">
+  <div class="cursor-ring"><span class="cursor-label"></span></div>
+  <div class="cursor-dot"></div>
+</div>
+
+<!-- Nav -->
+<header class="nav">
+  <a href="#top" class="nav-logo" data-cursor="home"><span class="onair"></span>NAMI <span class="mono dim">// <span id="clock">03:00:00</span></span></a>
+  <nav class="nav-links mono">
+    <a href="#host" data-cursor="read">host</a>
+    <a href="#transmissions" data-cursor="watch">transmissions</a>
+    <a href="#production" data-cursor="status">in production</a>
+    <a href="#tune" data-cursor="tune">tune</a>
+  </nav>
+  <button class="sound-toggle" id="sound-toggle" aria-pressed="false" data-cursor="sound">
+    <span class="eq"><i></i><i></i><i></i><i></i></span><span class="mono" id="sound-label">sound off</span>
+  </button>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-meta mono" data-reveal>
+      <span>FREQ 103.3 MINT</span><span>LAT 35.68 · LON 139.76</span><span class="blink">● LIVE</span>
+    </div>
+
+    <h1 class="hero-title" id="hero-title" aria-label="Nami">
+      <span>N</span><span>A</span><span>M</span><span>I</span>
+    </h1>
+
+    <div class="hero-portrait" data-speed="-0.12" data-tilt data-cursor="hello">
+      <img src="assets/nami.jpg" alt="Nami, a fictional virtual host with emerald twin-tail hair in a charcoal tech jacket, lit by mint light" onerror="this.remove()">
+      <div class="portrait-fallback" aria-hidden="true">
+        <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
+        <div class="sweep"></div>
+        <span class="mono">SIGNAL PORTRAIT<br>drop assets/nami.jpg</span>
+      </div>
+      <div class="portrait-hud mono">
+        <span>CAM 01</span><span>ISO 800</span><span>85MM</span><span class="rec">● REC</span>
+      </div>
+    </div>
+
+    <p class="hero-sub" data-scramble>midnight broadcast &mdash; mint signal</p>
+    <p class="hero-copy" data-reveal>A fictional late-night host. Rain on the window, a CRT humming, a city that never fully sleeps. She notices things, asks you questions, and keeps the signal warm until morning.</p>
+
+    <canvas id="scope" class="scope" aria-hidden="true"></canvas>
+    <div class="scroll-cue mono" aria-hidden="true"><span>scroll to tune in</span><i></i></div>
+  </section>
+
+  <!-- TICKER -->
+  <div class="ticker mono" aria-hidden="true">
+    <div class="ticker-track">
+      <span>ON AIR</span><b>✦</b><span>MIDNIGHT BROADCAST</span><b>✦</b><span>MINT SIGNAL</span><b>✦</b><span>RAIN ON GLASS</span><b>✦</b><span>CITY POP AFTER 2AM</span><b>✦</b><span>FICTIONAL HOST</span><b>✦</b><span>STAY A WHILE</span><b>✦</b>
+      <span>ON AIR</span><b>✦</b><span>MIDNIGHT BROADCAST</span><b>✦</b><span>MINT SIGNAL</span><b>✦</b><span>RAIN ON GLASS</span><b>✦</b><span>CITY POP AFTER 2AM</span><b>✦</b><span>FICTIONAL HOST</span><b>✦</b><span>STAY A WHILE</span><b>✦</b>
+    </div>
+  </div>
+
+  <!-- HOST -->
+  <section class="section host" id="host">
+    <div class="section-tag mono" data-reveal>01 / THE HOST</div>
+    <h2 class="display" data-split>She keeps the <em>signal</em> warm<br>while the city sleeps.</h2>
+
+    <div class="host-grid">
+      <article class="card" data-tilt data-reveal data-cursor="read">
+        <div class="card-k mono">PERSONALITY</div>
+        <h3>Calm. Warm. A little mysterious.</h3>
+        <p>Curious before clever. She notices the small things — the hum of a vending machine, the last train's reflection — and asks what you noticed too.</p>
+      </article>
+      <article class="card" data-tilt data-reveal data-cursor="read">
+        <div class="card-k mono">VOICE</div>
+        <h3>Short sentences. Quiet hours.</h3>
+        <p>One idea at a time. No hype, no shouting. A recommendation with a reason, a question at the end, and room for you to answer.</p>
+      </article>
+      <article class="card" data-tilt data-reveal data-cursor="read">
+        <div class="card-k mono">WORLD</div>
+        <h3>Midnight broadcast, mint light.</h3>
+        <p>A small studio above a rainy city. A CRT, a cassette shelf, a window that never stops reflecting neon. Mint means the signal is on.</p>
+      </article>
+    </div>
+
+    <div class="stats" data-reveal>
+      <div><span class="stat-n mono" data-count="3">0</span><span class="stat-l">AM is prime time</span></div>
+      <div><span class="stat-n mono" data-count="12">0</span><span class="stat-l">shots in the first film</span></div>
+      <div><span class="stat-n mono" data-count="103.3" data-decimals="1">0</span><span class="stat-l">FM, give or take</span></div>
+    </div>
+  </section>
+
+  <!-- TRANSMISSIONS (pinned horizontal scroll) -->
+  <section class="transmissions" id="transmissions">
+    <div class="pin">
+      <div class="pin-head">
+        <div class="section-tag mono">02 / TRANSMISSIONS</div>
+        <h2 class="display" data-split>Latest <em>from the studio</em></h2>
+      </div>
+      <div class="track" id="track"></div>
+    </div>
+  </section>
+
+  <!-- PRODUCTION -->
+  <section class="section production" id="production">
+    <div class="section-tag mono" data-reveal>03 / IN PRODUCTION</div>
+    <h2 class="display" data-split>Watch the <em>next broadcast</em><br>being made.</h2>
+    <p class="lede" data-reveal>Every shot is rendered, reviewed and approved before it airs. This board updates live.</p>
+    <div id="prod" class="prod" data-reveal>
+      <div class="prod-empty mono">Connecting to the studio…</div>
+    </div>
+  </section>
+
+  <!-- TUNER -->
+  <section class="section tune" id="tune">
+    <div class="section-tag mono" data-reveal>04 / TUNE IN</div>
+    <h2 class="display" data-split>Find the <em>frequency</em>.</h2>
+    <p class="lede" data-reveal>Drag the dial. Somewhere in the static, she's on air.</p>
+
+    <div class="tuner" id="tuner" data-reveal>
+      <canvas id="static" class="tuner-static" aria-hidden="true"></canvas>
+      <div class="tuner-readout mono"><span id="freq">88.0</span> <small>FM</small></div>
+      <div class="tuner-msg" id="tuner-msg" aria-live="polite">· · · static · · ·</div>
+      <div class="tuner-band" id="band" role="slider" tabindex="0" aria-label="Frequency" aria-valuemin="88" aria-valuemax="108" aria-valuenow="88" data-cursor="drag">
+        <div class="ticks"></div>
+        <div class="needle" id="needle"></div>
+      </div>
+      <div class="tuner-scale mono"><span>88</span><span>92</span><span>96</span><span>100</span><span>104</span><span>108</span></div>
+    </div>
+  </section>
+
+  <!-- OUTRO -->
+  <section class="outro">
+    <p class="mono dim" data-reveal>END OF BROADCAST</p>
+    <h2 class="outro-title" data-split>transmission<br><em>complete.</em></h2>
+    <a class="btn btn-primary magnetic" href="https://x.com" target="_blank" rel="noopener" data-cursor="follow">Follow the signal on X</a>
+  </section>
+</main>
+
+<footer class="footer mono">
+  <span>© Nami Broadcast</span>
+  <span>Nami is a fictional character operated by humans with creative tools. She is not sentient. Nothing on this site is financial advice.</span>
+</footer>
+
+<script type="module" src="assets/app.js"></script>
+</body>
+</html>
