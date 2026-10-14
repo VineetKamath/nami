@@ -2,13 +2,17 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { loadConfig } from './config.mjs';
 import { listJobs, loadJob, jobDir } from './jobs.mjs';
 import { readFeed } from './feed.mjs';
 import { budgetReport } from './budget.mjs';
 import { providerStatus } from './providers/router.mjs';
 import * as engine from './engine.mjs';
+import { progressView } from './progress.mjs';
+import { startAutopilot } from './autopilot.mjs';
+
+const PROGRESS_PAGE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'site', 'progress.html');
 
 const MIME = { '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp4': 'video/mp4', '.json': 'application/json', '.srt': 'text/plain; charset=utf-8' };
 
@@ -45,6 +49,8 @@ const ACTIONS = {
   publish: (cfg, id) => engine.publish(cfg, id),
   resume: (cfg, id) => engine.resume(cfg, id),
   next: (cfg, id) => engine.next(cfg, id),
+  arm: (cfg, id) => engine.arm(cfg, id),
+  disarm: (cfg, id) => engine.disarm(cfg, id),
 };
 
 export function createServer(cfg = loadConfig()) {
@@ -58,6 +64,11 @@ export function createServer(cfg = loadConfig()) {
 
       // ---- Public, read-only ----
       if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { ok: true, dryRun: cfg.dryRun }, cors);
+      if (req.method === 'GET' && url.pathname === '/api/progress') return send(res, 200, progressView(cfg), cors);
+      if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/progress')) {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+        return fs.createReadStream(PROGRESS_PAGE).pipe(res);
+      }
       if (req.method === 'GET' && url.pathname === '/api/feed') {
         const feed = readFeed(cfg);
         const includeDry = url.searchParams.get('includeDryRun') === '1';
@@ -65,7 +76,8 @@ export function createServer(cfg = loadConfig()) {
       }
       if (req.method === 'GET' && parts[0] === 'media' && parts.length === 3) {
         const job = loadJob(cfg, parts[1]);
-        if (job.status !== 'published') return send(res, 404, { error: 'not found' }, cors);
+        const preview = cfg.progress.showPreviews && job.autopilot && /^clip-\d+\.mp4$/.test(path.basename(decodeURIComponent(parts[2])));
+        if (job.status !== 'published' && !preview) return send(res, 404, { error: 'not found' }, cors);
         const dir = path.join(jobDir(cfg, job.id), 'files');
         const file = path.join(dir, path.basename(decodeURIComponent(parts[2])));
         if (!file.startsWith(dir + path.sep) || !fs.existsSync(file)) return send(res, 404, { error: 'not found' }, cors);
@@ -98,6 +110,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   for (const w of cfg.warnings) console.warn(`WARNING: ${w}`);
   if (!cfg.server.adminToken) console.warn('WARNING: ADMIN_TOKEN not set; admin endpoints are disabled (use the CLI instead).');
   createServer(cfg).listen(cfg.server.port, cfg.server.host, () => {
-    console.log(`nami-content-engine on http://${cfg.server.host}:${cfg.server.port}  (dryRun=${cfg.dryRun}, paid=${cfg.allowPaidCalls}, publish=${cfg.x.publishEnabled})`);
+    console.log(`nami-content-engine on http://${cfg.server.host}:${cfg.server.port}  (dryRun=${cfg.dryRun}, paid=${cfg.allowPaidCalls}, publish=${cfg.x.publishEnabled}, funding=${cfg.funding.enabled}, autopilot=${cfg.autopilot.enabled})`);
+    if (cfg.autopilot.enabled) startAutopilot(cfg, (m) => console.log(`[autopilot] ${m}`));
   });
 }

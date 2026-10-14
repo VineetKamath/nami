@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nami · In Production</title>
+<style>
+  :root { --bg: #05080d; --panel: #0b121b; --line: #16222f; --text: #e6f1ef; --muted: #7d8f99; --mint: #7fffd4; --amber: #ffb86b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 12px var(--mint); animation: pulse 2s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  h1 { font-size: 13px; letter-spacing: .18em; text-transform: uppercase; margin: 0; color: var(--mint); font-weight: 600; }
+  .sub { color: var(--muted); margin: 0 0 24px; font-size: 13px; }
+  .budget { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+  .budget .row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+  .budget .row b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 10px; }
+  .bar i { display: block; height: 100%; background: var(--mint); width: 0; transition: width .6s; }
+  .job { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  .job h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+  .meta { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+  .waiting { color: var(--amber); font-size: 13px; margin-bottom: 12px; }
+  ol { list-style: none; padding: 0; margin: 0 0 14px; }
+  li { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 14px; color: var(--muted); }
+  li::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--line); flex: none; }
+  li.done { color: var(--text); } li.done::before { background: var(--mint); border-color: var(--mint); }
+  li.active { color: var(--mint); } li.active::before { border-color: var(--mint); animation: pulse 1.2s infinite; }
+  .shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+  .shot { aspect-ratio: 9 / 16; border-radius: 6px; border: 1px solid var(--line); display: grid; place-items: center; font-size: 11px; color: var(--muted); overflow: hidden; position: relative; }
+  .shot.done { border-color: var(--mint); color: var(--mint); }
+  .shot.rendering { border-color: var(--mint); animation: pulse 1.2s infinite; }
+  .shot video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .empty { color: var(--muted); text-align: center; padding: 48px 0; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 28px; }
+</style>
+</head>
+<body>
+<main>
+  <header><span class="dot"></span><h1>Nami · In production</h1></header>
+  <p class="sub">Live status of the next broadcast. Updates every 20 seconds.</p>
+  <section class="budget" id="budget" hidden></section>
+  <section id="jobs"><p class="empty">Loading…</p></section>
+  <footer>Nami is a fictional virtual host. Nothing here is financial advice.</footer>
+</main>
+<script>
+  // Works served by the engine (same origin) or dropped into the public site with ?api=https://your-engine
+  const API = new URLSearchParams(location.search).get('api') || '';
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+  const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+  function renderBudget(b) {
+    const box = document.getElementById('budget');
+    if (!b) return;
+    box.hidden = false;
+    box.replaceChildren();
+    const row = (label, value) => { const r = el('div', 'row'); r.append(el('span', null, label), el('b', null, value)); return r; };
+    box.append(row('Production budget unlocked', money(b.video.unlockedUsd)), row('Spent on rendering', money(b.video.spentUsd)));
+    const bar = el('div', 'bar'); const fill = el('i'); bar.append(fill); box.append(bar);
+    fill.style.width = b.video.unlockedUsd > 0 ? Math.min(100, (b.video.spentUsd / b.video.unlockedUsd) * 100) + '%' : '0';
+  }
+
+  function renderJob(j) {
+    const card = el('article', 'job');
+    card.append(el('h2', null, j.title), el('div', 'meta', `${j.percent}% · updated ${new Date(j.updatedAt).toLocaleString()}`));
+    if (j.waiting) card.append(el('div', 'waiting', j.waiting));
+    const ol = el('ol');
+    for (const s of j.steps) ol.append(el('li', s.state, s.label));
+    const shots = el('div', 'shots');
+    for (const s of j.shots) {
+      const tile = el('div', 'shot ' + s.state, s.state === 'done' ? `✓ ${s.n}` : s.state === 'rendering' ? `${s.n}…` : String(s.n));
+      if (s.preview) { const v = el('video'); v.src = s.preview; v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true; tile.append(v); }
+      shots.append(tile);
+    }
+    card.append(ol, shots);
+    return card;
+  }
+
+  async function load() {
+    try {
+      const data = await (await fetch(API + '/api/progress')).json();
+      renderBudget(data.budget);
+      const list = document.getElementById('jobs');
+      list.replaceChildren(...(data.jobs.length ? data.jobs.map(renderJob) : [el('p', 'empty', 'Nothing in production yet.')]));
+    } catch {
+      document.getElementById('jobs').replaceChildren(el('p', 'empty', 'Signal lost. Retrying…'));
+    }
+  }
+  load();
+  setInterval(load, 20000);
+</script>
+</body>
+</html>

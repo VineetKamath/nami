@@ -113,7 +113,7 @@ export function resume(cfg, job) {
 export async function runStage(cfg, job, name, fn) {
   const prev = job.stages[name];
   if (prev?.status === 'done') return prev.output;
-  job.stages[name] = { status: 'running', at: new Date().toISOString() };
+  job.stages[name] = { ...prev, status: 'running', at: new Date().toISOString() }; // keeps prev.pending (vendor request id)
   saveJob(cfg, job);
   const output = await fn();
   job.stages[name] = { status: 'done', output, at: new Date().toISOString() };

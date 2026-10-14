@@ -2,14 +2,14 @@ import { withBudget, BudgetError } from '../budget.mjs';
 import { paidCallsEnabled, publishingEnabled } from '../config.mjs';
 import { templateLanguage, openaiLanguage } from './language.mjs';
 import { placeholderImage, openaiImage } from './image.mjs';
-import { placeholderVideo, higgsfieldVideo, seedanceVideo } from './video.mjs';
+import { placeholderVideo, higgsfieldVideo } from './video.mjs';
 import { dryRunPublisher, xPublisher } from './x.mjs';
 
 // Ordered by preference; free fallbacks last so routing degrades to $0 instead of failing.
 export const REGISTRY = {
   language: [openaiLanguage, templateLanguage],
   image: [openaiImage, placeholderImage],
-  video: [seedanceVideo, higgsfieldVideo, placeholderVideo],
+  video: [higgsfieldVideo, placeholderVideo],
   publisher: [xPublisher, dryRunPublisher],
 };
 
